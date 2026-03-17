@@ -11,4 +11,7 @@ nano4M_sol/data/
 *.pyc
 .DS_Store
 __pycache__
-.ipynb_checkpoints
+.ipynb_checkpoints# large/generated/local files
+NanoFM_Homeworks/outputs/
+NanoFM_Homeworks/Miniforge3-Linux-x86_64.sh
+Transformer_Homework/data/
