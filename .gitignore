@@ -9,6 +9,9 @@ nano4M_sol/data/
 *.tar.gz
 *.jpg
 *.pyc
+*.log
+*.wandb
+NanoFM_Homeworks/wandb/
 .DS_Store
 __pycache__
 .ipynb_checkpoints# large/generated/local files
