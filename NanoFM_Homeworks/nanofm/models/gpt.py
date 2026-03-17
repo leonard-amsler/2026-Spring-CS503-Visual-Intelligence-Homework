@@ -58,7 +58,7 @@ class GPT(nn.Module):
         self.max_seq_len = max_seq_len
         self.init_std = init_std
 
-        self.input_embedding = nn.Embedding(vocab_size, dim, padding_idx=padding_idx)
+        self.input_embedding = nn.Embedding(vocab_size, dim, padding_idx=padding_idx if abs(padding_idx) < vocab_size else None)
         self.positional_embedding = nn.Parameter(torch.randn(max_seq_len, dim) * init_std)
         
         self.trunk = TransformerTrunk(dim=dim, depth=depth, head_dim=head_dim, mlp_ratio=mlp_ratio, use_bias=use_bias)
@@ -150,10 +150,10 @@ class GPT(nn.Module):
         """
         # TODO: Compute the cross-entropy loss
         # Hint: Remember to ignore the padding token index in the loss calculation
-        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), target_seq.view(-1), ignore_index=padding_idx)
+        loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), target_seq.reshape(-1), ignore_index=padding_idx)
         return loss
 
-    def forward(self, data_dict: Dict[str, Any]) -> Tuple[torch.Tensor, Dict[str, Any]]:
+    def forward(self, data_dict: Dict[str, Any]) -> tuple[torch.Tensor, Dict[str, Any]]:
         """
         Forward pass through the model.
 
@@ -208,7 +208,7 @@ class GPT(nn.Module):
             # Keep only the last token's logits and sample the next token
             # Hint: Use the sample_tokens function from utils/sampling.py
             # Make sure to pass the temperature, top_k and top_p arguments
-            next_token = sample_tokens(logits[:, -1, :], temp=temp, top_k=top_k, top_p=top_p) # Shape: [1]
+            next_token = sample_tokens(logits[:, -1, :], temperature=temp, top_k=top_k, top_p=top_p)[0] # Shape: [1]
 
             # Concatenate the new token to the current_tokens sequence
             current_tokens = torch.cat([current_tokens, next_token.unsqueeze(0)], dim=1) # Shape: [1, L+1]
