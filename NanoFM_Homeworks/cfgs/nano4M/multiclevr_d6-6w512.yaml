@@ -24,6 +24,7 @@ min_lr: 0.000001 # Min learning rate after cosine decay
 weight_decay: 0.05 # AdamW weight decay
 clip_grad: 1.0 # Gradient clipping norm
 dtype: fp16 # Precision. Choose fp16 on V100s, bf16 on A100s or later. In case of instability, try fp32.
+find_unused_params: True # Needed for DDP to not crash because some modality projections might not receive gradients
 
 # Eval
 eval_freq: 100 # in millions of tokens
