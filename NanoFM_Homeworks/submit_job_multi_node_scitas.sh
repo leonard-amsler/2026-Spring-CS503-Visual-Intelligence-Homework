@@ -19,7 +19,9 @@ WANDB_KEY=$2        # Second argument
 # === Initialization ===
 set -x
 cat $0
-export MASTER_PORT=25678
+source ~/.bashrc
+conda activate nanofm
+export MASTER_PORT=$(expr 10000 + $RANDOM % 20000)
 export MASTER_ADDR=$(hostname)
 export WANDB_API_KEY=$WANDB_KEY
 export NCCL_DEBUG=INFO
