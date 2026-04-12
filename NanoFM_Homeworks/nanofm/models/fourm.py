@@ -437,14 +437,6 @@ class FourM(nn.Module):
             enc_input_positions: LongTensor of shape (1, N_input+N_target) with the updated encoder input positions.
             enc_input_modalities: LongTensor of shape (1, N_input+N_target) with the updated IDs specifying which modality
         """
-        
-        # In this task, we ask you to implement the ROAR decoding scheme in `generate_one_modality_roar`, focusing on generating a single modality given any input. Specifically it works in the following way:
-        # 1. The function expects the input tokens, their positions, and their modality. Given the desired number of decoding steps and target modality, it performs the iterative unmasking and returns the predicted tokens, as well as the original inputs concatenated with the predicted tokens/positions/modalities (to be used as input when generating other modalities in a chained manner).
-        # 2. Given the desired number of decoding steps, it computes the number of tokens $k$ to predict at each step (i.e. the schedule).
-        # 3. During each decoding step we select a random set of $k$ positions to decode, which are simply position indices between 0 and the maximum number of tokens (255 for each modality). These desired target positions to predict, alongside the corresponding target modality indices, are fed through the decoder to get the logits for those $k$ tokens. 
-        # 4. We then simply sample the token indices from these tokens. To prepare the input for the next round, we simply concatenate the predicted tokens with the encoder input tokens, the predicted positions with the encoder input positions, and the predicted modality ids with the input modality ids. 
-        # 5. After all the generation steps are done, we select the predicted subset of tokens, unshuffle it and return it.
-        # 6. With the generated sequence so far, we can then simply input that into the same function to generate the next modalities in a chained manner.
 
         B, N = enc_input_tokens.shape
         assert B == 1
