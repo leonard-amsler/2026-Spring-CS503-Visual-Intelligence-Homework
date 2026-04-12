@@ -479,7 +479,7 @@ class FourM(nn.Module):
             # TODO: Sample new tokens for the predicted_logits
             # Hint: Use the sample_tokens function from utils/sampling.py
             # Make sure to pass the `temp`, `top_k` and `top_p` arguments
-            samples, _ = sample_tokens(predicted_logits, temp=temp, top_k=top_k, top_p=top_p)
+            samples, _ = sample_tokens(predicted_logits, temperature=temp, top_k=top_k, top_p=top_p)
             samples = samples.unsqueeze(0)
 
             # TODO: Concatenate the new tokens to the encoder input tokens for the next step
