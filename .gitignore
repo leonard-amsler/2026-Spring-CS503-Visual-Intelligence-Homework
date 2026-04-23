@@ -1,5 +1,7 @@
 *.egg-info
 4M_Tutorial/retrieval_data
+Transformer_Homework/data/
+clevr/
 nano4M/outputs
 nano4M/wandb
 nano4M/data/
@@ -19,3 +21,6 @@ NanoFM_Homeworks/outputs/
 NanoFM_Homeworks/Miniforge3-Linux-x86_64.sh
 Transformer_Homework/data/
 clevr_com_304/
+.ipynb_checkpoints
+*/wandb/*
+*/checkpoints/*
