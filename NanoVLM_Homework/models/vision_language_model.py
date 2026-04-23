@@ -70,41 +70,42 @@ class VisionLanguageModel(nn.Module):
         # TODO
         # Step 1: Compute image embeddings
         # Process image through vision backbone and vision modality projector
-        image_embeds = ...
+        image_embeds = self.vision_encoder(image) # (B, N, vit_hidden_dim)
+        image_embeds = self.MP.forward(image_embeds) # Pixel shuffle + linear projection → (B, N', lm_hidden_dim)
 
 
         # Step 2: Compute text embeddings
         # Get text embeddings using the token_embedding layer of self.decoder
-        text_embeds = ...
+        text_embeds = self.decoder.token_embedding(input_ids)
 
 
         # Step 3: Concatenate image and text embeddings
-        combined_embeds = ...
+        combined_embeds = torch.cat([image_embeds, text_embeds], dim=1) # (B, N' + T, lm_hidden_dim)
 
 
         # Step 4: Extend the attention mask
         # The current attention_mask only covers text tokens (B, T)
         # Note: image tokens should always be attended to
         if attention_mask is not None:
-            image_attention = ... # define attention mask for image
-            attention_mask = ...  # combined attention mask
+            image_attention = torch.ones((attention_mask.size(0), image_embeds.size(1)), device=attention_mask.device, dtype=attention_mask.dtype) # (B, N')
+            attention_mask = torch.cat([image_attention, attention_mask], dim=1)  # combined attention mask
 
         # Step 5: LLM forward pass
         # Pass combined embeddings and attention mask to the LLM decoder to get the final token embeddings
-        output_token_embeddings = ...
+        output_token_embeddings = self.decoder.forward(combined_embeds, attention_mask=attention_mask)
 
         loss = None
         # Step 6, 7 & 8: Compute Loss (only if targets are provided)
         if targets is not None:
             # Step 6: Project the embeddings to vocabulary distribution via decoder head (self.decoder.head)
-            logits = ...
+            logits = self.decoder.head(output_token_embeddings) # (B, N' + T, vocab_size)
 
             # Step 7: Obtain the text part of logits (ignore image tokens)
-            logits = ...
+            logits = logits[:, image_embeds.size(1):, :] # (B, T, vocab_size)
 
             # Step 8: Compute Cross-Entropy loss on answer tokens only
             # Hint: use ignore_index to mask out non-answer tokens
-            loss = ...
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-100)
 
         return logits, loss
 
@@ -124,24 +125,24 @@ class VisionLanguageModel(nn.Module):
         # TODO
         # Step 1: Image Embeddings
         # Pass image through vision encoder and modality projector
-        image_embd_encoder = ...
-        image_embd = ...
+        image_embd_encoder = self.vision_encoder(image)
+        image_embd = self.MP.forward(image_embd_encoder)
 
 
         # Step 2: Text Token Embeddings
         # Embed the input token ids using the decoder's token_embedding layer (self.decoder.token_embedding)
-        token_embd = ...
+        token_embd = self.decoder.token_embedding(input_ids)
 
 
         # Step 3: Concatenate image and text embeddings
-        combined_embed = ...
+        combined_embed = torch.cat([image_embd, token_embd], dim=1)
         batch_size = image_embd.size(0)
         img_seq_len = image_embd.size(1)
 
         # Step 4: Extend Attention Mask
         if attention_mask is not None:
-            image_attention_mask = ...  # hint: we want all image tokens to be attended
-            attention_mask = ...  # concat image_attention + text attention_mask
+            image_attention_mask = torch.ones((attention_mask.size(0), image_embd.size(1)), device=attention_mask.device, dtype=attention_mask.dtype)  # hint: we want all image tokens to be attended
+            attention_mask = torch.cat([image_attention_mask, attention_mask], dim=1)  # concat image_attention + text attention_mask
 
         # Step 5: Autoregressive Generation Loop
         # At each sub-step (till max_new_tokens):
@@ -157,32 +158,29 @@ class VisionLanguageModel(nn.Module):
         outputs = combined_embed
         generated_tokens = torch.zeros((batch_size, max_new_tokens), device=input_ids.device, dtype=input_ids.dtype)
 
-        for i in range(...):
+        for i in range(max_new_tokens):
 
-            model_out = ....  # (i)
+            model_out = self.decoder.forward(outputs, attention_mask=attention_mask) # (i)
 
+            last_token_logits = model_out.logits[:, -1, :] # (ii)
 
-            last_token_logits = ... # (ii)
+            if not self.decoder.lm_use_tokens:  # (iii)
+                last_token_logits = self.decoder.head(last_token_logits)
 
-            if ...:  # (iii)
-                last_token_logits = ...
+            probs = torch.softmax(last_token_logits, dim=-1) # (iv)
+            next_token = torch.multinomial(probs, num_samples=1) # (iv)
+            generated_tokens[:, i] = next_token.squeeze(1) # fill in the generated next token in generated_tokens at ith position
 
-            probs = ... # (iv)
-            next_token = ...
-            ... # fill in the generated next token in generated_tokens at ith position
-
-
-            generated_embed = ... # (v)
-            outputs = ...  # concat generated_embed to outputs along dim=1
+            generated_embed = self.decoder.token_embedding(generated_tokens[:, i:i+1]) # (v)
+            outputs = torch.cat([outputs, generated_embed], dim=1)  # concat generated_embed to outputs along dim=1
 
             if attention_mask is not None:
-                attention_mask = ... # (vi)
+                attention_mask = torch.cat([attention_mask, torch.ones((attention_mask.size(0), 1), device=attention_mask.device, dtype=attention_mask.dtype)], dim=1)  # (vi)
 
-
-            if ...: # vii)
+            if next_token.item() == 2: # vii)
                 break
 
-        return ... # (viii)
+        return generated_tokens # (viii)
 
     @torch.no_grad()
     def generate_with_kv_cache(self, input_ids, image, attention_mask=None, max_new_tokens=5):
