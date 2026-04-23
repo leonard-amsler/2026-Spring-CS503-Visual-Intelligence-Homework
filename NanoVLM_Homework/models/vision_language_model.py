@@ -105,7 +105,7 @@ class VisionLanguageModel(nn.Module):
 
             # Step 8: Compute Cross-Entropy loss on answer tokens only
             # Hint: use ignore_index to mask out non-answer tokens
-            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-100)
+            loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1), ignore_index=-100)
 
         return logits, loss
 
