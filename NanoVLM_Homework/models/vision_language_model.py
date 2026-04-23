@@ -178,7 +178,11 @@ class VisionLanguageModel(nn.Module):
             if attention_mask is not None:
                 attention_mask = torch.cat([attention_mask, torch.ones((attention_mask.size(0), 1), device=attention_mask.device, dtype=attention_mask.dtype)], dim=1)  # (vi)
 
-            if next_token.item() == 2: # vii)
+            # if next_token.item() == 2: # vii)
+            #     break
+
+            # To break when ALL sequences in the batch have hit EOS token (id 2):
+            if (next_token == 2).all().item():
                 break
 
         return generated_tokens # (viii)
