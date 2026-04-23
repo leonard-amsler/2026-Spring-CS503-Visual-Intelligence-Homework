@@ -162,7 +162,8 @@ class VisionLanguageModel(nn.Module):
 
             model_out = self.decoder.forward(outputs, attention_mask=attention_mask) # (i)
 
-            last_token_logits = model_out.logits[:, -1, :] # (ii)
+            # last_token_logits = model_out.logits[:, -1, :] # (ii)
+            last_token_logits = model_out[:, -1, :]
 
             if not self.decoder.lm_use_tokens:  # (iii)
                 last_token_logits = self.decoder.head(last_token_logits)
