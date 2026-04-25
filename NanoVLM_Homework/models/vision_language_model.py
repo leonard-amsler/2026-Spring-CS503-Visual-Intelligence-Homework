@@ -209,43 +209,44 @@ class VisionLanguageModel(nn.Module):
         
         # Step 1: Build combined image + text embeddings
         # hint: you've done this in the previous exercise
-        image_embd = ...
-        token_embd = ...
-        combined_embd = ...
+        image_embd = self.vision_encoder(image)
+        image_embd = self.MP.forward(image_embd)
+        token_embd = self.decoder.token_embedding(input_ids)
+        combined_embd = torch.cat([image_embd, token_embd], dim=1)
         batch_size = image_embd.size(0)
 
         # Step 2: PREFILL
         # Run the full prompt through decoder.forward_kv (past_key_values should be None at the start).
-        model_out, past_key_values = ...
+        model_out, past_key_values = self.decoder.forward_kv(combined_embd, past_key_values=None)
 
         # Step 3: Obtain the first generated token from the last position
-        last_logits = ...
+        last_logits = model_out[:, -1, :]
         if not self.decoder.lm_use_tokens:
-            last_logits = ... # apply lm head (self.decoder.head) if decoder is in embedding mode
+            last_logits = self.decoder.head(last_logits) # apply lm head (self.decoder.head) if decoder is in embedding mode
 
         # Step 4: Sample new token by first applying the softmax (torch.softmax) and then the multinomial sampling (torch.multinomial)
-        probs = ...
-        next_token = ...
+        probs = torch.softmax(last_logits, dim=-1)
+        next_token = torch.multinomial(probs, num_samples=1)
 
         generated_tokens = torch.zeros((batch_size, max_new_tokens), device=input_ids.device, dtype=input_ids.dtype)
-        ... # fill in the generated next token in generated_tokens at 0th position
+        generated_tokens[:, 0] = next_token.squeeze(1) # fill in the generated next token in generated_tokens at 0th position
 
         # Step 5: DECODE LOOP
         for i in range(1, max_new_tokens):
 
-            next_embd = ... # embed only the single last-generated token
+            next_embd = self.decoder.token_embedding(generated_tokens[:, i-1:i]) # embed only the single last-generated token
 
-            model_out, past_key_values = ... # decoder.forward_kv processes 1 token but attends over full history via cache
+            model_out, past_key_values = self.decoder.forward_kv(next_embd, past_key_values=past_key_values) # decoder.forward_kv processes 1 token but attends over full history via cache
 
-            last_logits = ... # obtain the last token logits
+            last_logits = model_out[:, -1, :] # obtain the last token logits
             if not self.decoder.lm_use_tokens:
-                last_logits = ... # apply lm head (self.decoder.head) if decoder is in embedding mode
+                last_logits = self.decoder.head(last_logits) # apply lm head (self.decoder.head) if decoder is in embedding mode
 
-            probs = ...
-            next_token = ...
-            ... # fill in the generated next token in generated_tokens at ith position
+            probs = torch.softmax(last_logits, dim=-1)
+            next_token = torch.multinomial(probs, num_samples=1)
+            generated_tokens[:, i] = next_token.squeeze(1) # fill in the generated next token in generated_tokens at ith position
 
-            if ...: # stop the generation loop if the generated token == 2 (token id 2 is the EOS token we used during training)
+            if (next_token == 2).all().item(): # stop the generation loop if the generated token == 2 (token id 2 is the EOS token we used during training)
                 break
 
         return generated_tokens
