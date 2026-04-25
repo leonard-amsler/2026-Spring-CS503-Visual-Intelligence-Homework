@@ -72,10 +72,11 @@ class VQACollator(object):  # Visual Question Answering Collator
             first_token_pos = torch.argmax(attention_mask[i]) # the first 1 (non-zero value) in the attention mask for a given batch sample marks the first non-padding token
             # using first_token_pos and question_length to find the position where the question ends. Also, because labels are already shifted left by 1 relative to input_ids,
             # take into account the left shift by subtracting 1)
-            question_end = first_token_pos + question_length - 1 # the position where the question ends (taking into account the left shift by subtracting 1)
-            # update labels for padding and question part to -100
-            labels[i, :first_token_pos] = -100
-            labels[i, question_end + 1:] = -100
+            question_end = first_token_pos + question_length - 1 # position of the last question token; its label (after shift) is the first answer token
+            # mask padding tokens AND all question-internal next-token predictions.
+            # Keep labels at positions [question_end, end-1]: these correspond to predicting answer tokens
+            # (position question_end's label is the first answer token; later positions predict subsequent answer tokens).
+            labels[i, :question_end] = -100
 
         return {
             "image": images,
