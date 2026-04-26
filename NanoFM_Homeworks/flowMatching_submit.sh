@@ -10,7 +10,7 @@
 #SBATCH --output=interactive_job.out    # Output log file
 #SBATCH --error=interactive_job.err     # Error log file
 
-source ~/miniconda3/etc/profile.d/conda.sh
+source ~/miniforge3/etc/profile.d/conda.sh
 conda activate nanofm
 cd notebooks
 
