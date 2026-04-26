@@ -12,6 +12,7 @@
 
 source ~/miniforge3/etc/profile.d/conda.sh
 conda activate nanofm
+pip install jupyter nbconvert
 cd notebooks
 
 jupyter nbconvert --to notebook --execute \
